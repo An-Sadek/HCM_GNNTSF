@@ -1,0 +1,13 @@
+`streets.csv`: Thông tin đoạn đường ở TP. HCM. Có 5553 dòng, 6 cột:
+- Id của đoạn đường
+- Cấp công trình giao thông từ 1 đến 4, trong đó cấp 1 là lớn nhất. Được quy định tại [Thông tư 06/2021/TT-BXD](https://thuvienphapluat.vn/chinh-sach-phap-luat-moi/vn/ho-tro-phap-luat/tu-van-phap-luat/53110/bang-phan-cap-cong-trinh-giao-thong-moi-nhat)
+- Tốc độ tối đa cho phép
+- Tên đường: Trong đó có 3948 đoạn đường được đặt tên, 1605 đoạn đường không được đặt tên
+- Loại đường: Có 11 loại đường, bao gồm:
+    - Motorway: Đường cao tốc
+    - Trunk: Đường ô tô
+    - Primary, secondary, tertiary: Đường đô thị, các cấp công trình khác nhau sẽ ảnh hưởng đến cách gọi
+    - Motorway link: Nhánh vào đường cao tốc
+    - Trunk link: Nhánh vào đường ô tô
+    - Primary, secondary, tertiary link: Nhánh vào đường đô thị
+    - Unclassified: Chưa phân loại, do chưa có tên, của dân hoặc lí do khác
