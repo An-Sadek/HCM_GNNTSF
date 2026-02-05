@@ -1,0 +1,2 @@
+Chạy train
+Chạy main
