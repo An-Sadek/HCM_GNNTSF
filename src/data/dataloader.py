@@ -224,7 +224,7 @@ for epoch in tqdm(range(EPOCH), desc="Đang huấn luyện GNN"):  # Bạn có t
     with torch.no_grad():
         for X_val, y_val in val_loader:
             X_val = X_val.to(device)
-            y_val = y_val[:, 0, :].to(device)
+            y_val = y_val.squeeze(-1) 
             
             pred_val = model(X_val, graph=edge_index, static=static_feat)
             val_loss += criterion(pred_val, y_val).item()
