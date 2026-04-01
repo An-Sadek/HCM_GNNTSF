@@ -15,7 +15,8 @@ torch.manual_seed(42)
 with open('config.yaml', 'r') as file:
     config = yaml.safe_load(file)
 
-H5_PATH = config["data"]["h5_path"]
+STATIC_PATH = config["data"]["static_path"]
+DYNAMIC_PATH = config["data"]["dynamic_path"]
 PREPROCESS_PATH = config["data"]["preprocess_path"]
 
 SPLIT_RATIO = config["data"]["split_ratio"]
@@ -29,7 +30,7 @@ EPOCH = config["train"]["epoch"]
 # === LOAD DATA
 # Load đồ thị, không gian đặc trưng tĩnh
 with h5py.File(H5_PATH, 'r') as f:
-    graph = torch.from_numpy(f["structure"][:]) # Cấu trúc đồ thị (2, V) = (2, 202)
+    graph = torch.from_numpy(f["edge_index"][:]) # Cấu trúc đồ thị (2, V) = (2, 202)
     static = torch.from_numpy(f["static"][:]) # Không gian đặc trưng tĩnh (V, F) = (202, 55)
 
 # Load không gian đặc trưng động
