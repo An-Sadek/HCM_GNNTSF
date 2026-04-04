@@ -1,0 +1,9 @@
+model:
+    "ST-GNN 1":
+        layers: [
+            ("ST_GNNLayer", 12, 5, 4),
+            ("activation", "tanh"),
+            ("ST_GNNLayer", 12, 4, 2),
+            ("activation", "tanh"),
+            ("ST_GNNLayer", 12, 2, 1),
+        ]

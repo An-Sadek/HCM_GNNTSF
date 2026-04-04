@@ -2,16 +2,37 @@ data:
     T: 24 # Số bước quá khứ + tương lai
     P: 12 # Số bước quá khứ
     Q: 12 # Số bước tương lai
+    
     root: "data"
     raw_path: "data/Traffic_flow-HCM"
     preprocess_path: "data/preprocessed"
+
+    files:
+        streets.csv:
+            fillNan: {
+                "max_velocity": -1,
+                "name": "(không tên)"
+            }
+            ordinalEncoding: "custom"
+        segments.csv:
+            fillNan: {
+                "max_velocity": -1,
+                "street_name": "(không tên)"
+            }
+            oneHotEncoding: ["street_type"]
     
     h5_path: "data/preprocessed/data.h5"
     graph_path: "data/preprocessed/dynamic.h5"
     dynamic_path: "data/preprocessed/dynamic.h5"
     static_path: "data/preprocessed/data.h5"
-    split_ratio: [0.7, 0.2, 0.1]
+
+    split_ratio: [0.7, 0.2, 0.1] # train, val, test
 
 train:
     batch_size: 32
     epoch: 1
+    dropout: 0.5
+    learning_rate: 0.001
+    optimizer: "SGD"
+    regularization: "L2"
+    init: "Xavier"
