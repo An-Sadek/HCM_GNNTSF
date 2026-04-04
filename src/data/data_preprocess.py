@@ -11,8 +11,8 @@ from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 with open('config.yaml', 'r') as file:
     config = yaml.safe_load(file)
 
-DATA_PATH = config["data"]["raw_path"]
-PREPROCESS_PATH = config["data"]["preprocess_path"]
+DATA_PATH = config["data"]["path"]["raw"]
+PREPROCESS_PATH = config["data"]["path"]["preprocess"]
 
 
 class GenericDataset():
@@ -20,6 +20,9 @@ class GenericDataset():
         self.file_path = Path(file_path)
         self.preprocess_path = Path(PREPROCESS_PATH)
         self.name = self.file_path.name
+        self.config_dict = config["data"]["files"][self.name]
+        print(self.config_dict)
+            
         print(f"\n\nBEGIN === Đang xử lý file {self.name}")
 
         # Đọc dữ liệu
@@ -46,8 +49,19 @@ class GenericDataset():
         # Lưu vào thuộc tính
         self.df = df
 
-    def start(self):
-        pass
+        # Chạy start
+        self.generic_start()
+
+    def generic_start(self):
+        for action, params in self.config_dict.items():
+            match action:
+                case "fillNaN": self.fillNaN(**params)
+                case "ordinalEncodingStreetLvl": self.ordinalEncodingStreetLvl(**params)
+                case "oneHotEncoding": self.oneHotEncoding(**params)
+                case "ordinalEncoding": self.ordinalEncoding(**params)
+                case "rename": self.rename(**params)
+                case "z_scoreStandardization": self.z_scoreStandardization(**params)
+                case "_": pass
 
     def save(self):
         preprocess_path = str(self.preprocess_path / self.name)
@@ -55,8 +69,16 @@ class GenericDataset():
         self.df.to_csv(preprocess_path, index=False)
 
     def end(self):
+        self.save()
         del self
         print("\n=== END")
+
+    def check_StaticDynamic(self):
+        print("Kiểm tra tính tĩnh động của đồ thị")
+        print(f"Thuộc tính\t\t\tTĩnh")
+
+        for column in self.df.columns:
+            pass
 
     def toDateTime(self, strformat: str=None):
         pass
@@ -74,22 +96,22 @@ class GenericDataset():
         std_scaler = StandardScaler()
         for column in columns:
             data = self.df[column].values.reshape(-1, 1)
-            scaled_data = std_scaler.fit_transform(data).reshape(1, -1)
-            self.df[column] = scaled_data
+            scaled_data = std_scaler.fit_transform(data)
+            self.df[f"{column}_z_score"] = scaled_data.flatten()
 
-    def ordinalEncoding(self, columns: Iterable[str]):
-        print("\nTiến hành Ordinal Encoding")
-        encoder = OrdinalEncoder()
+    def ordinalEncoding(self, map_dict: dict):
+        self.df['LOS_encoded'] = self.df['LOS'].map(map_dict)
+
+    def ordinalEncodingStreetLvl(self, column: str):
+        # Ordinal encoding bằng data có sẵn
+        # 0 là lớn nhất
+        self.df[column] = self.df[column] - 1
+        max_level = self.df[column].max()
+        self.df[column] = max_level - self.df[column]
+
+    def oneHotEncoding(self, columns: Iterable[str]):
         for column in columns:
-            data = self.df[column].values.reshape(-1, 1)
-            encoded_data = encoder.fit_transform(data).reshape(1, -1)
-            self.df[column] = encoded_data
-
-    def oneHotEncoding(self, oh_dict: Union[dict[str, str | None], Iterable[str]]):
-        for column, prefix in oh_dict.items():
-            if prefix is None:
-                prefix = column
-            oh_df = pd.get_dummies(df, columns=[column], prefix=prefix)
+            oh_df = pd.get_dummies(self.df[column])
             oh_df = oh_df.astype(int)
             self.df = pd.concat([self.df, oh_df], axis=1)
 
@@ -97,44 +119,60 @@ class GenericDataset():
 class StreetsDataset(GenericDataset):
     def __init__(self, file_path: str):
         GenericDataset.__init__(self, file_path)
-        self.start()
-
-    def start(self):
-        self.fillNaN({
-            "max_velocity": -1,
-            "name": "(không tên)"
-        })
-
-        # Ordinal encoding bằng data có sẵn
-        # 0 là lớn nhất
-        self.df["level"] = self.df["level"] - 1
-        max_level = self.df["level"].max()
-        self.df["level"] = max_level - self.df["level"]
-
-        self.save()
         self.end()
 
 
 class SegmentsDataset(GenericDataset):
     def __init__(self, file_path: str):
         GenericDataset.__init__(self, file_path)
+        self.end()
+
+
+class TrainDataset(GenericDataset):
+    def __init__(self, file_path: str, segments: SegmentsDataset):
+        GenericDataset.__init__(self, file_path)
+        self.segments = segments
+        self.start()
+        self.end()
 
     def start(self):
-        self.fillNaN({
-            "max_velocity": -1,
-            "street_name": "(không tên)"
-        })
-        oneHotEncoding(["street_type"])
+        self.weakFilter(**self.config_dict["weakFilter"])
+        self.periodExtraction()
+        self.mergeZScore(segments)
 
-        self.save()
-        self.end()
+    def weakFilter(self, threshold: int = 10):
+        counts = self.df["segment_id"].value_counts()
+        valid_segments = counts[counts >= threshold].index
+        self.df = self.df[self.df["segment_id"].isin(valid_segments)]
+        
+        # Thống kê sau khi lọc
+        final_counts = self.df["segment_id"].value_counts()
+        print(f"\nSố segment sau khi được lọc: {len(final_counts)}")
+        print(f"Số record tối thiểu và tối đa của segment: {final_counts.min()}, {final_counts.max()}")
+        print(f"Tổng records còn lại: {len(self.df)}")
+
+    def periodExtraction(self):
+        period_parts  = self.df['period'].str.split('_', expand=True)
+        self.df['hour'] = period_parts [1].astype(int)
+        self.df['minute'] = period_parts [2].astype(int)
+
+    def mergeZScore(self, segments: SegmentsDataset):
+        #assert length_z_score in segments.df.columns, "Không tìm thấy length_z_score"
+        self.df = self.df.merge(
+            segments.df[["segment_id", "length_z_score"]],
+            on="segment_id",
+            how="left"
+        )
+        
 
 if __name__ == "__main__":
     file_paths = {
         "streets": f"{DATA_PATH}/streets.csv",
-        "segments": f"{DATA_PATH}/segments.csv"
+        "segments": f"{DATA_PATH}/segments.csv",
+        "train": f"{DATA_PATH}/train.csv"
     }
     StreetsDataset(file_paths["streets"])
-    SegmentsDataset(file_paths["segments"])
+    segments = SegmentsDataset(file_paths["segments"])
+    TrainDataset(file_paths["train"], segments)
 
     

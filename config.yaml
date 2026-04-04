@@ -2,24 +2,54 @@ data:
     T: 24 # Số bước quá khứ + tương lai
     P: 12 # Số bước quá khứ
     Q: 12 # Số bước tương lai
-    
-    root: "data"
-    raw_path: "data/Traffic_flow-HCM"
-    preprocess_path: "data/preprocessed"
+
+    path:
+        root: "data"
+        raw: "data/Traffic_flow-HCM"
+        preprocess: "data/preprocessed"
 
     files:
+        nodes.csv:
+        segment_status.csv:
         streets.csv:
-            fillNan: {
-                "max_velocity": -1,
-                "name": "(không tên)"
-            }
-            ordinalEncoding: "custom"
+            fillNaN: 
+                fill_dict:
+                    "max_velocity": -1
+                    "name": "(không tên)"
+            ordinalEncodingStreetLvl:
+                column: "level"
+                
         segments.csv:
-            fillNan: {
-                "max_velocity": -1,
-                "street_name": "(không tên)"
-            }
-            oneHotEncoding: ["street_type"]
+            fillNaN:
+                fill_dict:
+                    "max_velocity": -1
+                    "street_name": "(không tên)"
+            rename:
+                name_dict: 
+                    _id: "segment_id"
+            z_scoreStandardization:
+                columns: ["length"] 
+            oneHotEncoding:
+                columns: ["street_type"]
+            ordinalEncodingStreetLvl:
+                column: "street_level"
+
+        train.csv:
+            weakFilter:
+                threshold: 10
+            periodExtraction: ~
+            ordinalEncoding:
+                map_dict:
+                    A: 0
+                    B: 1
+                    C: 2
+                    D: 3
+                    E: 4
+                    F: 5
+            ordinalEncodingStreetLvl: 
+                column: "street_level"
+            oneHotEncoding: 
+                columns: ["weekday", "street_type"]
     
     h5_path: "data/preprocessed/data.h5"
     graph_path: "data/preprocessed/dynamic.h5"
