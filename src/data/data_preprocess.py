@@ -18,7 +18,7 @@ PREPROCESS_PATH = config["data"]["path"]["preprocess"]
 class GenericDataset():
     def __init__(self, file_path: str, preprocess_path: str = PREPROCESS_PATH):
         self.file_path = Path(file_path)
-        self.preprocess_path = Path(PREPROCESS_PATH)
+        self.preprocess_path = Path(preprocess_path)
         self.name = self.file_path.name
         self.config_dict = config["data"]["files"][self.name]
         print(self.config_dict)
@@ -111,7 +111,7 @@ class GenericDataset():
 
     def oneHotEncoding(self, columns: Iterable[str]):
         for column in columns:
-            oh_df = pd.get_dummies(self.df[column])
+            oh_df = pd.get_dummies(self.df[column], prefix=column)
             oh_df = oh_df.astype(int)
             self.df = pd.concat([self.df, oh_df], axis=1)
 
@@ -138,7 +138,7 @@ class TrainDataset(GenericDataset):
     def start(self):
         self.weakFilter(**self.config_dict["weakFilter"])
         self.periodExtraction()
-        self.mergeZScore(segments)
+        self.mergeZScore(self.segments)
 
     def weakFilter(self, threshold: int = 10):
         counts = self.df["segment_id"].value_counts()
@@ -175,4 +175,3 @@ if __name__ == "__main__":
     segments = SegmentsDataset(file_paths["segments"])
     TrainDataset(file_paths["train"], segments)
 
-    

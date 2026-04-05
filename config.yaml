@@ -4,6 +4,11 @@ data:
         raw: "data/Traffic_flow-HCM"
         preprocess: "data/preprocessed"
 
+        h5: "data/preprocessed/dynamic.h5"
+        graph: "data/preprocessed/graph.h5"
+        dynamic: "data/preprocessed/dynamic.h5"
+        static: "data/preprocessed/static.h5"
+
     files:
         nodes.csv:
         segment_status.csv:
@@ -47,10 +52,7 @@ data:
             oneHotEncoding: 
                 columns: ["weekday", "street_type"]
     
-    h5_path: "data/preprocessed/data.h5"
-    graph_path: "data/preprocessed/dynamic.h5"
-    dynamic_path: "data/preprocessed/dynamic.h5"
-    static_path: "data/preprocessed/data.h5"
+
 
     gen_graph:
         T: 24 # Số bước quá khứ + tương lai
@@ -63,15 +65,16 @@ train:
     STGNN:
         stgnn0: # Mặc định của tác giả
             d: 16 # Feature đầu ra của mỗi head attention
-            F: 5 # Đặc trưng đầu vào
+            K: 4 # Số lượng head của attention
+            F: 55 # Đặc trưng đầu vào
             V: 202 # Số nút
             L: 1 # Số block Statt
             overall:
                 batch_size: 32
                 epoch: 1
                 dropout: 0.5
-                learning_rate: 0.001
-                optimizer: "SGD"
-                regularization: "L2"
-                init: "Xavier"
+            optimizer:
+                name: "adam"
+                params:
+                    lr: 0.001
             
