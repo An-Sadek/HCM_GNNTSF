@@ -8,7 +8,9 @@ from typing import Any, Union
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 
 # lOAD CONFIG
-with open('config.yaml', 'r', encoding='utf-8') as file:
+CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.yaml"
+
+with CONFIG_PATH.open("r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
 DATA_PATH = config["data"]["path"]["raw"]
@@ -20,7 +22,7 @@ class GenericDataset():
         self.file_path = Path(file_path)
         self.preprocess_path = Path(preprocess_path)
         self.name = self.file_path.name
-        self.config_dict = config["data"]["files"][self.name]
+        self.config_dict = config["data"]["files"].get(self.name) or {}
         print(self.config_dict)
             
         print(f"\n\nBEGIN === Đang xử lý file {self.name}")
@@ -54,6 +56,8 @@ class GenericDataset():
 
     def generic_start(self):
         for action, params in self.config_dict.items():
+            if params is None:
+                continue
             match action:
                 case "fillNaN": self.fillNaN(**params)
                 case "ordinalEncodingStreetLvl": self.ordinalEncodingStreetLvl(**params)
@@ -61,7 +65,7 @@ class GenericDataset():
                 case "ordinalEncoding": self.ordinalEncoding(**params)
                 case "rename": self.rename(**params)
                 case "z_scoreStandardization": self.z_scoreStandardization(**params)
-                case "_": pass
+                case "_": continue
 
     def save(self):
         preprocess_path = str(self.preprocess_path / self.name)
@@ -167,11 +171,14 @@ class TrainDataset(GenericDataset):
 
 if __name__ == "__main__":
     file_paths = {
+        "nodes": f"{DATA_PATH}/nodes.csv",
         "streets": f"{DATA_PATH}/streets.csv",
         "segments": f"{DATA_PATH}/segments.csv",
+        "segment_status": f"{DATA_PATH}/segment_status.csv",
         "train": f"{DATA_PATH}/train.csv"
     }
+    GenericDataset(file_paths["nodes"])
+    GenericDataset(file_paths["segment_status"])
     StreetsDataset(file_paths["streets"])
     segments = SegmentsDataset(file_paths["segments"])
     TrainDataset(file_paths["train"], segments)
-
