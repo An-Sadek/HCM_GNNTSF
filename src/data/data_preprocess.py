@@ -8,7 +8,7 @@ from typing import Any, Union
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler
 
 # lOAD CONFIG
-with open('config.yaml', 'r') as file:
+with open('config.yaml', 'r', encoding='utf-8') as file:
     config = yaml.safe_load(file)
 
 DATA_PATH = config["data"]["path"]["raw"]
