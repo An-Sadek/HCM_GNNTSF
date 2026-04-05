@@ -14,7 +14,7 @@ with CONFIG_PATH.open("r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
 path_config = config["data"]["path"]
-H5_PATH = path_config["h5"]
+DYNAMIC_PATH = path_config["dynamic"]
 STATIC_PATH = path_config["static"]
 GRAPH_PATH = path_config["graph"]
 
@@ -50,7 +50,7 @@ class HCM_Dataset(Dataset):
         return X, y
 
 
-dataset = HCM_Dataset(h5_path=H5_PATH)
+dataset = HCM_Dataset(h5_path=DYNAMIC_PATH)
 train_dataset, val_dataset, test_dataset = random_split(
     dataset, [TRAIN_RATIO, VAL_RATIO, TEST_RATIO]
 )

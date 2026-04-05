@@ -3,8 +3,6 @@ data:
         root: "data"
         raw: "data/Traffic_flow-HCM"
         preprocess: "data/preprocessed"
-
-        h5: "data/preprocessed/dynamic.h5"
         graph: "data/preprocessed/graph.h5"
         dynamic: "data/preprocessed/dynamic.h5"
         static: "data/preprocessed/static.h5"
@@ -13,23 +11,23 @@ data:
         nodes.csv:
         segment_status.csv:
         streets.csv:
-            fillNaN: 
+            fillNaN:
                 fill_dict:
                     "max_velocity": -1
-                    "name": "(không tên)"
+                    "name": "(khong ten)"
             ordinalEncodingStreetLvl:
                 column: "level"
-                
+
         segments.csv:
             fillNaN:
                 fill_dict:
                     "max_velocity": -1
-                    "street_name": "(không tên)"
+                    "street_name": "(khong ten)"
             rename:
-                name_dict: 
+                name_dict:
                     _id: "segment_id"
             z_scoreStandardization:
-                columns: ["length"] 
+                columns: ["length"]
             oneHotEncoding:
                 columns: ["street_type"]
             ordinalEncodingStreetLvl:
@@ -47,28 +45,28 @@ data:
                     D: 3
                     E: 4
                     F: 5
-            ordinalEncodingStreetLvl: 
+            ordinalEncodingStreetLvl:
                 column: "street_level"
-            oneHotEncoding: 
+            oneHotEncoding:
                 columns: ["weekday", "street_type"]
-    
-
 
     gen_graph:
-        T: 24 # Số bước quá khứ + tương lai
-        P: 12 # Số bước quá khứ
-        Q: 12 # Số bước tương lai
+        T: 24
+        P: 12
+        Q: 12
 
-    split_ratio: [0.7, 0.2, 0.1] # train, val, test
+    split_ratio: [0.7, 0.2, 0.1]
 
 train:
     STGNN:
-        stgnn0: # Mặc định của tác giả
-            d: 16 # Feature đầu ra của mỗi head attention
-            K: 4 # Số lượng head của attention
-            F: 55 # Đặc trưng đầu vào
-            V: 202 # Số nút
-            L: 1 # Số block Statt
+        stgnn0:
+            d: 16
+            K: 4
+            F: 1
+            V: 669
+            L: 1
+            input_feature_idx: -1
+            target_null_value: -1.0
             overall:
                 batch_size: 32
                 epoch: 1
@@ -77,4 +75,3 @@ train:
                 name: "adam"
                 params:
                     lr: 0.001
-            
