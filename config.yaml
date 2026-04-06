@@ -6,6 +6,7 @@ data:
         graph: "data/preprocessed/graph.h5"
         dynamic: "data/preprocessed/dynamic.h5"
         static: "data/preprocessed/static.h5"
+        result: "result"
 
     files:
         nodes.csv:
@@ -35,7 +36,7 @@ data:
 
         train.csv:
             weakFilter:
-                threshold: 10
+                threshold: 50
             periodExtraction: ~
             ordinalEncoding:
                 map_dict:

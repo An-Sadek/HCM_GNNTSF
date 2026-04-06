@@ -1,4 +1,7 @@
+# BEGIN === Khâu chuẩn bị
+# Thư viện
 import argparse
+import os.path
 from pathlib import Path
 import sys
 
@@ -8,6 +11,7 @@ import torch.optim
 import yaml
 from tqdm import tqdm
 
+# Load package khác
 if __package__:
     from ..data.dataloader import get_dataloader
     from ..model.stgnn import STGNN
@@ -19,21 +23,21 @@ else:
     from src.model.stgnn import STGNN
 
 
+# Load config và định nghĩa hằng
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.yaml"
 CHECKPOINT_DIR = Path(__file__).resolve().parents[2] / "checkpoints"
 
 with CONFIG_PATH.open("r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
-
-def get_optimizer(name: str, params, **kwargs):
-    match name.lower():
-        case "adam":
-            return torch.optim.Adam(params, **kwargs)
-        case "sgd":
-            return torch.optim.SGD(params, **kwargs)
-        case _:
-            raise ValueError(f"Unsupported optimizer: {name}")
+# Tạo thư mục result
+RESULT_DIR = config["data"]["path"]["result"]
+if not os.path.exists(RESULT_DIR):
+    print("Không tìm thấy thư mục kết quả, tạo mới")
+    os.mkdir(RESULT_DIR)
+else:
+    print("Xác nhận thư mục kết quả")
+# === END
 
 
 def masked_mae(prediction: torch.Tensor, target: torch.Tensor, null_val: float = -1.0) -> torch.Tensor:
@@ -61,6 +65,15 @@ def regression_metrics(prediction: torch.Tensor, target: torch.Tensor, null_val:
 
 class Training:
     def __init__(self, model_architecture: str, model_name: str):
+        # Tạo thư mục cho model_architecture và model_name
+        result_architecture = f"{RESULT_DIR}/{model_architecture}"
+        if not os.path.exists(result_architecture):
+            os.mkdir(result_architecture)
+
+        result_model = f"{result_architecture}/{model_name}"
+        if not os.path.exists(result_model):
+            os.mkdir(result_model)
+
         if model_architecture not in config["train"]:
             raise ValueError(f"Unknown model architecture: {model_architecture}")
 
@@ -82,12 +95,20 @@ class Training:
         self.target_null_value = self.config_dict.get("target_null_value", -1.0)
         self.checkpoint_path = CHECKPOINT_DIR / f"{self.model_architecture.lower()}_{self.model_name}.pt"
 
-    def _build_optimizer(self):
-        return get_optimizer(
-            self.optimizer_dict["name"],
-            self.model.parameters(),
-            **self.optimizer_dict["params"],
-        )
+    def get_optimizer(self):
+        match self.optimizer_dict["name"]:
+            case "adam":
+                return torch.optim.Adam(
+                    self.model.parameters(),
+                    **self.optimizer_dict["params"]
+                )
+            case "sgd":
+                return torch.optim.SGD(
+                    self.model.parameters(),
+                    **self.optimizer_dict["params"]
+                )
+            case _:
+                raise ValueError(f"Unsupported optimizer: {self.model_architecture.lower()}")
 
     def _prepare_batch(self, X: torch.Tensor, y: torch.Tensor):
         X = X[..., self.input_feature_idx].to(self.device)
@@ -129,7 +150,7 @@ class Training:
         return avg_loss, metrics
 
     def fit(self, train_loader, val_loader):
-        optimizer = self._build_optimizer()
+        optimizer = self.get_optimizer()
         best_val_loss = float("inf")
         CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 
