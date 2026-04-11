@@ -37,6 +37,10 @@ if not os.path.exists(RESULT_DIR):
     os.mkdir(RESULT_DIR)
 else:
     print("Xác nhận thư mục kết quả")
+
+# Tạo metadata để tránh bị lú
+def create_metadata(result_path):
+    pass
 # === END
 
 
