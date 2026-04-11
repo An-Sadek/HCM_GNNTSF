@@ -7,13 +7,14 @@ from typing import Any
 from sklearn.preprocessing import StandardScaler
 
 # lOAD CONFIG
-CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.yaml"
+CONFIG_ROOT = Path("configs")
 
-with CONFIG_PATH.open("r", encoding="utf-8") as file:
+PATH_CONFIG = Path(CONFIG_ROOT / "data.yaml")
+with PATH_CONFIG.open("r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
-DATA_PATH = config["data"]["path"]["raw"]
-PREPROCESS_PATH = config["data"]["path"]["preprocess"]
+DATA_PATH = config["path"]["raw"]
+PREPROCESS_PATH = config["path"]["preprocess"]
 
 
 class GenericDataset():
@@ -21,7 +22,7 @@ class GenericDataset():
         self.file_path = Path(file_path)
         self.preprocess_path = Path(preprocess_path)
         self.name = self.file_path.name
-        self.config_dict = config["data"]["files"].get(self.name) or {}
+        self.config_dict = config["files"].get(self.name) or {}
         print(self.config_dict)
             
         print(f"\n\nBEGIN === Đang xử lý file {self.name}")

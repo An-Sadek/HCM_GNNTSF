@@ -1,0 +1,60 @@
+path:
+    root: "data"
+    raw: "data/Traffic_flow-HCM"
+    preprocess: "data/preprocessed"
+    result: "result"
+
+    output_files:
+        graph: "data/preprocessed/graph.h5"
+        dynamic: "data/preprocessed/dynamic.h5"
+        static: "data/preprocessed/static.h5"
+
+files:
+    nodes.csv:
+
+    segment_status.csv:
+
+    streets.csv:
+        fillNaN:
+            fill_dict:
+                "max_velocity": -1
+                "name": "(khong ten)"
+        ordinalEncodingStreetLvl:
+            column: "level"
+
+    segments.csv:
+        fillNaN:
+            fill_dict:
+                "max_velocity": -1
+                "street_name": "(khong ten)"
+        rename:
+            name_dict:
+                _id: "segment_id"
+        oneHotEncoding:
+            columns: ["street_type"]
+        ordinalEncodingStreetLvl:
+            column: "street_level"
+
+    train.csv:
+        weakFilter:
+            threshold: 54
+        periodExtraction: ~
+        ordinalEncoding:
+        map_dict:
+            A: 0
+            B: 1
+            C: 2
+            D: 3
+            E: 4
+            F: 5
+        ordinalEncodingStreetLvl:
+            column: "street_level"
+        oneHotEncoding:
+            columns: ["weekday", "street_type"]
+
+    gen_graph:
+        T: 24
+        P: 12
+        Q: 12
+
+    split_ratio: [0.7, 0.2, 0.1]
