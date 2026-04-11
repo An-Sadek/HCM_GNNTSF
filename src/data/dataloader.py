@@ -30,6 +30,14 @@ def _load_h5_tensor(path: str, key: str) -> torch.Tensor:
         return torch.from_numpy(f[key][:])
 
 
+def get_dynamic_feature_dim(split: str = "train") -> int:
+    with h5py.File(DYNAMIC_PATH, "r") as f:
+        if split not in f:
+            available_splits = ", ".join(sorted(f.keys()))
+            raise KeyError(f"'{split}' not found in {DYNAMIC_PATH}. Available splits: {available_splits}")
+        return int(f[split]["X"].shape[-1])
+
+
 static = _load_h5_tensor(STATIC_PATH, "static")
 graph = _load_h5_tensor(GRAPH_PATH, "edge_index")
 

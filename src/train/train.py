@@ -13,13 +13,13 @@ from tqdm import tqdm
 
 # Load package khác
 if __package__:
-    from ..data.dataloader import get_dataloader
+    from ..data.dataloader import get_dataloader, get_dynamic_feature_dim
     from ..model.stgnn import STGNN
 else:
     project_root = Path(__file__).resolve().parents[2]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
-    from src.data.dataloader import get_dataloader
+    from src.data.dataloader import get_dataloader, get_dynamic_feature_dim
     from src.model.stgnn import STGNN
 
 
@@ -87,15 +87,14 @@ class Training:
         self.model: nn.Module = nn.Module()
 
         self.config_dict = config["train"][model_architecture][model_name]
-        overall_dict = self.config_dict["overall"]
+        overall_dict = self.config_dict["general"]
         self.optimizer_dict = self.config_dict["optimizer"]
 
         self.batch_size = overall_dict["batch_size"]
         self.epochs = overall_dict["epoch"]
         self.dropout = overall_dict["dropout"]
 
-        # The reference STGNN trains on one scalar per node per time step.
-        self.input_feature_idx = self.config_dict.get("input_feature_idx", -1)
+        self.input_feature_idx = self.config_dict.get("input_feature_idx")
         self.target_null_value = self.config_dict.get("target_null_value", -1.0)
         self.checkpoint_path = CHECKPOINT_DIR / f"{self.model_architecture.lower()}_{self.model_name}.pt"
 
@@ -115,7 +114,9 @@ class Training:
                 raise ValueError(f"Unsupported optimizer: {self.model_architecture.lower()}")
 
     def _prepare_batch(self, X: torch.Tensor, y: torch.Tensor):
-        X = X[..., self.input_feature_idx].to(self.device)
+        if self.input_feature_idx is not None:
+            X = X[..., self.input_feature_idx]                                                                    
+        X = X.to(self.device)
         y = y.squeeze(-1).to(self.device)
         return X, y
 
@@ -200,8 +201,9 @@ class STGNNTraining(Training):
         self.K = self.config_dict["K"]
         self.d = self.config_dict["d"]
         self.L = self.config_dict["L"]
+        self.input_feature_dim = get_dynamic_feature_dim()
 
-        self.model = STGNN(1, self.K * self.d, self.L, self.d).to(self.device)
+        self.model = STGNN(self.input_feature_dim, self.K * self.d, self.L, self.d).to(self.device)
 
 
 def parse_args():

@@ -130,10 +130,10 @@ class STGNNwithGRU(nn.Module):
         return output
 
 class STGNN(nn.Module):
-    def __init__(self, infea, outfea, L, d):
+    def __init__(self, infea, outfea, L, d, out_channels=1):
         super(STGNN, self).__init__()
         self.start_emb = nn.Linear(infea, outfea)
-        self.end_emb = nn.Linear(outfea, infea)
+        self.end_emb = nn.Linear(outfea, out_channels)
 
         self.stgnnwithgru = nn.ModuleList([STGNNwithGRU(outfea) for i in range(L)])
         self.positional_encoding = PositionalEncoding(outfea)
@@ -143,9 +143,13 @@ class STGNN(nn.Module):
 
     def forward(self, x):
         '''
-        x:[B,T,N]
+        x:[B,T,N,F] or x:[B,T,N]
         '''
-        x = x.unsqueeze(-1)
+        if x.dim() == 3:
+            x = x.unsqueeze(-1)
+        elif x.dim() != 4:
+            raise ValueError(f"Expected input with 3 or 4 dimensions, got shape {tuple(x.shape)}")
+
         x = self.start_emb(x)
         for i in range(self.L):
             x = self.stgnnwithgru[i](x)
@@ -154,7 +158,9 @@ class STGNN(nn.Module):
             x = self.transform[i](x)
         x = self.end_emb(x)
 
-        return x.squeeze(-1)
+        if x.shape[-1] == 1:
+            return x.squeeze(-1)
+        return x
 
 
 if __name__ == "__main__":
