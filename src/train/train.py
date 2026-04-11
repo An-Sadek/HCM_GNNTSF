@@ -24,14 +24,16 @@ else:
 
 
 # Load config và định nghĩa hằng
-CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.yaml"
+CONFIG_ROOT = Path("configs") / "config.yaml"
+CONFIG_PATH = CONFIG_ROOT / "data.yaml"
 CHECKPOINT_DIR = Path(__file__).resolve().parents[2] / "checkpoints"
-
 with CONFIG_PATH.open("r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
+MODEL_CONFIG_ROOT = Path("configs/models")
+
 # Tạo thư mục result
-RESULT_DIR = config["data"]["path"]["result"]
+RESULT_DIR = config["path"]["result"]
 if not os.path.exists(RESULT_DIR):
     print("Không tìm thấy thư mục kết quả, tạo mới")
     os.mkdir(RESULT_DIR)
@@ -115,7 +117,7 @@ class Training:
 
     def _prepare_batch(self, X: torch.Tensor, y: torch.Tensor):
         if self.input_feature_idx is not None:
-            X = X[..., self.input_feature_idx]                                                                    
+            X = X[..., self.input_feature_idx]
         X = X.to(self.device)
         y = y.squeeze(-1).to(self.device)
         return X, y

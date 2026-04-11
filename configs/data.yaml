@@ -9,6 +9,13 @@ path:
         dynamic: "data/preprocessed/dynamic.h5"
         static: "data/preprocessed/static.h5"
 
+gen_graph:
+    T: 24
+    P: 12
+    Q: 12
+
+split_ratio: [0.7, 0.2, 0.1]
+
 files:
     nodes.csv:
 
@@ -40,21 +47,14 @@ files:
             threshold: 54
         periodExtraction: ~
         ordinalEncoding:
-        map_dict:
-            A: 0
-            B: 1
-            C: 2
-            D: 3
-            E: 4
-            F: 5
+            map_dict:
+                A: 0
+                B: 1
+                C: 2
+                D: 3
+                E: 4
+                F: 5
         ordinalEncodingStreetLvl:
             column: "street_level"
         oneHotEncoding:
             columns: ["weekday", "street_type"]
-
-    gen_graph:
-        T: 24
-        P: 12
-        Q: 12
-
-    split_ratio: [0.7, 0.2, 0.1]

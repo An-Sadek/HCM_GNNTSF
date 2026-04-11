@@ -12,19 +12,26 @@ from tqdm import tqdm
 
 torch.manual_seed(42)
 
-CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.yaml"
-
-with CONFIG_PATH.open("r", encoding="utf-8") as file:
+# Load config
+# |-- Load path config root va data.yaml
+CONFIG_ROOT = Path("configs")
+DATA_CONFIG_PATH = CONFIG_ROOT / "data.yaml"
+with DATA_CONFIG_PATH.open("r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
-PATH_CONFIG = config["data"]["path"]
-GRAPH_CONFIG = config["data"]["gen_graph"]
-SPLIT_RATIO = tuple(config["data"]["split_ratio"])
+# |-- Load confi graph và tham số split
+GRAPH_CONFIG = config["gen_graph"]
+SPLIT_RATIO = tuple(config["split_ratio"])
+TRAIN_FILE_CONFIG = config["files"].get("train.csv", {})
 
+# |-- Load các hằng path
+PATH_CONFIG = config["path"]
 PREPROCESS_PATH = Path(PATH_CONFIG["preprocess"])
-DYNAMIC_PATH = Path(PATH_CONFIG["dynamic"])
-STATIC_PATH = Path(PATH_CONFIG["static"])
-GRAPH_PATH = Path(PATH_CONFIG["graph"])
+
+OUTPUTS = PATH_CONFIG["output_files"]
+DYNAMIC_PATH = Path(OUTPUTS["dynamic"])
+STATIC_PATH = Path(OUTPUTS["static"])
+GRAPH_PATH = Path(OUTPUTS["graph"])
 
 
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
