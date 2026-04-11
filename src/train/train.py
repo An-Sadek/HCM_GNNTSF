@@ -1,4 +1,4 @@
-# BEGIN === Khâu chuẩn bị
+# Khâu chuẩn bị
 # Thư viện
 import argparse
 import os.path
@@ -24,13 +24,13 @@ else:
 
 
 # Load config và định nghĩa hằng
-CONFIG_ROOT = Path("configs") / "config.yaml"
+CONFIG_ROOT = Path("configs")
 CONFIG_PATH = CONFIG_ROOT / "data.yaml"
 CHECKPOINT_DIR = Path(__file__).resolve().parents[2] / "checkpoints"
 with CONFIG_PATH.open("r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
-MODEL_CONFIG_ROOT = Path("configs/models")
+MODEL_CONFIG_ROOT = Path(CONFIG_ROOT / "models")
 
 # Tạo thư mục result
 RESULT_DIR = config["path"]["result"]
@@ -71,33 +71,37 @@ def regression_metrics(prediction: torch.Tensor, target: torch.Tensor, null_val:
 
 class Training:
     def __init__(self, model_architecture: str, model_name: str):
+        # Load config kiến trúc
+        architecture_config_path = MODEL_CONFIG_ROOT / f"{model_architecture}.yaml"
+        with architecture_config_path.open("r", encoding="utf-8") as file:
+            architecture_config = yaml.safe_load(file)
+        self.model_config = architecture_config[model_name]
+
         # Tạo thư mục cho model_architecture và model_name
+        # |-- Taạo thư mục cho kiến trúc
         result_architecture = f"{RESULT_DIR}/{model_architecture}"
         if not os.path.exists(result_architecture):
             os.mkdir(result_architecture)
 
+        # |-- Tạo thư mục riêng cho mô hiình
         result_model = f"{result_architecture}/{model_name}"
         if not os.path.exists(result_model):
             os.mkdir(result_model)
-
-        if model_architecture not in config["train"]:
-            raise ValueError(f"Unknown model architecture: {model_architecture}")
 
         self.model_architecture = model_architecture
         self.model_name = model_name
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model: nn.Module = nn.Module()
 
-        self.config_dict = config["train"][model_architecture][model_name]
-        overall_dict = self.config_dict["general"]
-        self.optimizer_dict = self.config_dict["optimizer"]
+        general_config = self.model_config["general"]
+        self.optimizer_dict = self.model_config["optimizer"]
 
-        self.batch_size = overall_dict["batch_size"]
-        self.epochs = overall_dict["epoch"]
-        self.dropout = overall_dict["dropout"]
+        self.batch_size = general_config["batch_size"]
+        self.epochs = general_config["epoch"]
+        self.dropout = general_config["dropout"]
 
-        self.input_feature_idx = self.config_dict.get("input_feature_idx")
-        self.target_null_value = self.config_dict.get("target_null_value", -1.0)
+        self.input_feature_idx = self.model_config.get("input_feature_idx")
+        self.target_null_value = self.model_config.get("target_null_value", -1.0)
         self.checkpoint_path = CHECKPOINT_DIR / f"{self.model_architecture.lower()}_{self.model_name}.pt"
 
     def get_optimizer(self):
@@ -176,7 +180,7 @@ class Training:
                 torch.save(
                     {
                         "model_state_dict": self.model.state_dict(),
-                        "config": self.config_dict,
+                        "config": self.model_config,
                         "epoch": epoch,
                         "val_loss": val_loss,
                     },
@@ -198,11 +202,11 @@ class Training:
 
 class STGNNTraining(Training):
     def __init__(self, model_name: str):
-        super().__init__("STGNN", model_name)
+        super().__init__("ST-GNN", model_name)
 
-        self.K = self.config_dict["K"]
-        self.d = self.config_dict["d"]
-        self.L = self.config_dict["L"]
+        self.K = self.model_config["K"]
+        self.d = self.model_config["d"]
+        self.L = self.model_config["L"]
         self.input_feature_dim = get_dynamic_feature_dim()
 
         self.model = STGNN(self.input_feature_dim, self.K * self.d, self.L, self.d).to(self.device)

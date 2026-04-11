@@ -1,9 +1,9 @@
 stgnn0:
     d: 16
     K: 4
-    F: 1
+    F: 5
     L: 1
-    input_feature_idx: -1
+    input_feature_idx: null
     target_null_value: -1.0
     general:
         batch_size: 32

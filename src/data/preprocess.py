@@ -4,7 +4,6 @@ import pandas as pd
 from collections.abc import Iterable
 from typing import Any
 
-from sklearn.preprocessing import StandardScaler
 
 # lOAD CONFIG
 CONFIG_ROOT = Path("configs")
