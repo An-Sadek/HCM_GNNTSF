@@ -200,15 +200,8 @@ class STGNNTraining(Training):
         self.K = self.config_dict["K"]
         self.d = self.config_dict["d"]
         self.L = self.config_dict["L"]
-        self.F = self.config_dict.get("F", 1)
 
-        if self.F != 1:
-            raise ValueError(
-                "The reference STGNN implementation expects a single input feature. "
-                "Set train.STGNN.<model>.F to 1 or modify src/model/stgnn.py for multi-feature inputs."
-            )
-
-        self.model = STGNN(self.F, self.K * self.d, self.L, self.d).to(self.device)
+        self.model = STGNN(1, self.K * self.d, self.L, self.d).to(self.device)
 
 
 def parse_args():

@@ -1,0 +1,7 @@
+root: "data"
+raw: "data/Traffic_flow-HCM"
+preprocess: "data/preprocessed"
+graph: "data/preprocessed/graph.h5"
+dynamic: "data/preprocessed/dynamic.h5"
+static: "data/preprocessed/static.h5"
+result: "result"

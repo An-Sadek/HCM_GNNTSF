@@ -1,6 +1,0 @@
-STGNN:
-    stgnn1:
-        d = 16 # Feature đầu ra của mỗi head attention
-        F = 5 # Đặc trưng đầu vào
-        V = 202 # Số nút
-        L = 1 # Số block Statt

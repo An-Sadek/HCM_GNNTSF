@@ -1,0 +1,15 @@
+stgnn0:
+    d: 16
+    K: 4
+    F: 1
+    L: 1
+    input_feature_idx: -1
+    target_null_value: -1.0
+    overall:
+        batch_size: 32
+        epoch: 1
+        dropout: 0.5
+    optimizer:
+        name: "adam"
+        params:
+            lr: 0.001

@@ -63,8 +63,6 @@ train:
         stgnn0:
             d: 16
             K: 4
-            F: 1
-            V: 669
             L: 1
             input_feature_idx: -1
             target_null_value: -1.0
