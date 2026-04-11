@@ -87,16 +87,6 @@ class GenericDataset():
         del self
         print("\n=== END")
 
-    def check_StaticDynamic(self):
-        print("Kiểm tra tính tĩnh động của đồ thị")
-        print(f"Thuộc tính\t\t\tTĩnh")
-
-        for column in self.df.columns:
-            pass
-
-    def toDateTime(self, strformat: str=None):
-        pass
-
     def rename(self, name_dict: dict[str, str]):
         """
         Đổi tên cột
@@ -141,6 +131,12 @@ class GenericDataset():
         self.df[column] = max_level - self.df[column]
 
     def oneHotEncoding(self, columns: Iterable[str]):
+        """
+        One-hot encoding các thuộc tính
+
+        Args:
+            columns: Danh sách các cột muốn one-hot
+        """
         for column in columns:
             oh_df = pd.get_dummies(self.df[column], prefix=column)
             oh_df = oh_df.astype(int)
