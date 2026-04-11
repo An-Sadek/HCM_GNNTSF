@@ -53,10 +53,10 @@ class GenericDataset():
         # Chạy start
         self.generic_start()
 
-        # Kết thúc quá trình chạy và save
-        self.end()
-
     def generic_start(self):
+        """
+        Bắt đầu đọc từ từ điển config và thực thi theo thứ tự
+        """
         for action, params in self.config_dict.items():
             if params is None:
                 continue
@@ -66,16 +66,23 @@ class GenericDataset():
                 case "oneHotEncoding": self.oneHotEncoding(**params)
                 case "ordinalEncoding": self.ordinalEncoding(**params)
                 case "rename": self.rename(**params)
-                case "z_scoreStandardization": self.z_scoreStandardization(**params)
                 case "_": continue
 
+        self.end()
+
     def save(self):
+        """
+        Lưu lại các file đã xử lý
+        """
         self.preprocess_path.mkdir(parents=True, exist_ok=True)
         preprocess_path = str(self.preprocess_path / self.name)
         print(f"\nLưu tại: {preprocess_path}")
         self.df.to_csv(preprocess_path, index=False)
 
     def end(self):
+        """
+        Hàm hủy
+        """
         self.save()
         del self
         print("\n=== END")
@@ -91,25 +98,42 @@ class GenericDataset():
         pass
 
     def rename(self, name_dict: dict[str, str]):
+        """
+        Đổi tên cột
+
+        Args:
+            name_dict: Từ điển k, v là tên cột muốn đổi và tên mới
+        """
         self.df = self.df.rename(columns=name_dict)
 
     def fillNaN(self, fill_dict: dict[str, Any]):
+        """
+        Thế giá trị bị thiếu
+
+        Args:
+            fill_dict: Từ điển gồm từ khóa là cột bị thiếu và giá trị muốn thế
+        """
         print("\nFill dữ liệu thiếu")
         for column, value in fill_dict.items():
             print(f"\tThế giá trị ở cột {column} = {value}")
             self.df[column] = self.df[column].fillna(value)
 
-    def z_scoreStandardization(self, columns: Iterable[str]):
-        std_scaler = StandardScaler()
-        for column in columns:
-            data = self.df[column].values.reshape(-1, 1)
-            scaled_data = std_scaler.fit_transform(data)
-            self.df[f"{column}_z_score"] = scaled_data.flatten()
-
     def ordinalEncoding(self, map_dict: dict):
+        """
+        Ordinal Encoding sử dụng dictionary
+
+        Args:
+            map_dict: Từ điển thay thế giá trị
+        """
         self.df['LOS_encoded'] = self.df['LOS'].map(map_dict)
 
-    def ordinalEncodingStreetLvl(self, column: str):
+    def ordinalEncodingStreetLvl(self, column: str="street_level"):
+        """
+        Oridnal Encoding thuộc tính street level cho segments.csv và train.csv
+
+        Args:
+            column: Tên cột street đó, trong trường hợp bị sai
+        """
         # Ordinal encoding bằng data có sẵn
         # 0 là lớn nhất
         self.df[column] = self.df[column] - 1
@@ -147,6 +171,12 @@ class TrainDataset(GenericDataset):
         self.periodExtraction()
 
     def weakFilter(self, threshold: int = 10):
+        """
+        Lọc các segment có số lượng record ít
+
+        Args:
+            threshold: Ngưỡng đạt chuẩn, giữ các segments nếu >= ngưỡng này
+        """
         counts = self.df["segment_id"].value_counts()
         valid_segments = counts[counts >= threshold].index
         self.df = self.df[self.df["segment_id"].isin(valid_segments)]
@@ -158,6 +188,9 @@ class TrainDataset(GenericDataset):
         print(f"Tổng records còn lại: {len(self.df)}")
 
     def periodExtraction(self):
+        """
+        Trích xuất thuộc tính "period" trong dataset
+        """
         period_parts  = self.df['period'].str.split('_', expand=True)
         self.df['hour'] = period_parts [1].astype(int)
         self.df['minute'] = period_parts [2].astype(int)
