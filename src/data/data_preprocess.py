@@ -143,12 +143,6 @@ class GenericDataset():
             self.df = pd.concat([self.df, oh_df], axis=1)
 
 
-class StreetsDataset(GenericDataset):
-    def __init__(self, file_path: str):
-        GenericDataset.__init__(self, file_path)
-        self.end()
-
-
 class SegmentsDataset(GenericDataset):
     def __init__(self, file_path: str):
         GenericDataset.__init__(self, file_path)
@@ -202,6 +196,6 @@ if __name__ == "__main__":
     }
     GenericDataset(file_paths["nodes"])
     GenericDataset(file_paths["segment_status"])
-    StreetsDataset(file_paths["streets"])
+    GenericDataset(file_paths["streets"])
     segments = SegmentsDataset(file_paths["segments"])
     TrainDataset(file_paths["train"], segments)
