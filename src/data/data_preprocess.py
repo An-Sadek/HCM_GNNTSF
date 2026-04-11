@@ -1,11 +1,10 @@
 import yaml
 from pathlib import Path
-import numpy as np
 import pandas as pd
 from collections.abc import Iterable
-from typing import Any, Union
+from typing import Any
 
-from sklearn.preprocessing import OrdinalEncoder, StandardScaler
+from sklearn.preprocessing import StandardScaler
 
 # lOAD CONFIG
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.yaml"

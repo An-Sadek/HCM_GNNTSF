@@ -27,8 +27,6 @@ data:
             rename:
                 name_dict:
                     _id: "segment_id"
-            z_scoreStandardization:
-                columns: ["length"]
             oneHotEncoding:
                 columns: ["street_type"]
             ordinalEncodingStreetLvl:
