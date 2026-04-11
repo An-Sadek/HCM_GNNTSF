@@ -67,6 +67,7 @@ class GenericDataset():
                 case "_": continue
 
     def save(self):
+        self.preprocess_path.mkdir(parents=True, exist_ok=True)
         preprocess_path = str(self.preprocess_path / self.name)
         print(f"\nLưu tại: {preprocess_path}")
         self.df.to_csv(preprocess_path, index=False)
@@ -141,7 +142,6 @@ class TrainDataset(GenericDataset):
     def start(self):
         self.weakFilter(**self.config_dict["weakFilter"])
         self.periodExtraction()
-        self.mergeZScore(self.segments)
 
     def weakFilter(self, threshold: int = 10):
         counts = self.df["segment_id"].value_counts()
@@ -158,14 +158,6 @@ class TrainDataset(GenericDataset):
         period_parts  = self.df['period'].str.split('_', expand=True)
         self.df['hour'] = period_parts [1].astype(int)
         self.df['minute'] = period_parts [2].astype(int)
-
-    def mergeZScore(self, segments: SegmentsDataset):
-        #assert length_z_score in segments.df.columns, "Không tìm thấy length_z_score"
-        self.df = self.df.merge(
-            segments.df[["segment_id", "length_z_score"]],
-            on="segment_id",
-            how="left"
-        )
         
 
 if __name__ == "__main__":
@@ -176,8 +168,8 @@ if __name__ == "__main__":
         "segment_status": f"{DATA_PATH}/segment_status.csv",
         "train": f"{DATA_PATH}/train.csv"
     }
-    GenericDataset(file_paths["nodes"])
-    GenericDataset(file_paths["segment_status"])
+    GenericDataset(file_paths["nodes"]).end()
+    GenericDataset(file_paths["segment_status"]).end()
     StreetsDataset(file_paths["streets"])
     segments = SegmentsDataset(file_paths["segments"])
     TrainDataset(file_paths["train"], segments)

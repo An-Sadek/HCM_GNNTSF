@@ -10,6 +10,7 @@ from numpy.lib.stride_tricks import sliding_window_view
 from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
+torch.manual_seed(42)
 
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config.yaml"
 
@@ -18,6 +19,7 @@ with CONFIG_PATH.open("r", encoding="utf-8") as file:
 
 PATH_CONFIG = config["data"]["path"]
 GRAPH_CONFIG = config["data"]["gen_graph"]
+SPLIT_RATIO = tuple(config["data"]["split_ratio"])
 
 PREPROCESS_PATH = Path(PATH_CONFIG["preprocess"])
 DYNAMIC_PATH = Path(PATH_CONFIG["dynamic"])
@@ -246,6 +248,95 @@ def create_sliding_windows(
     return windows, x, y
 
 
+def calculate_split_lengths(
+    num_samples: int,
+    split_ratio: tuple[float, float, float],
+) -> tuple[int, int, int]:
+    train_ratio, val_ratio, test_ratio = split_ratio
+    ratio_sum = train_ratio + val_ratio + test_ratio
+    if not np.isclose(ratio_sum, 1.0):
+        raise ValueError(f"Split ratios must sum to 1.0, got {ratio_sum:.6f}")
+
+    train_length = int(num_samples * train_ratio)
+    val_length = int(num_samples * val_ratio)
+    test_length = num_samples - train_length - val_length
+    return train_length, val_length, test_length
+
+
+def build_split_indices(
+    num_samples: int,
+    split_ratio: tuple[float, float, float],
+    seed: int,
+) -> dict[str, np.ndarray]:
+    train_length, val_length, test_length = calculate_split_lengths(
+        num_samples=num_samples,
+        split_ratio=split_ratio,
+    )
+    shuffled_indices = np.random.default_rng(seed).permutation(num_samples)
+
+    train_end = train_length
+    val_end = train_end + val_length
+    test_end = val_end + test_length
+
+    return {
+        "train": shuffled_indices[:train_end],
+        "val": shuffled_indices[train_end:val_end],
+        "test": shuffled_indices[val_end:test_end],
+    }
+
+
+def zscore_standardize(
+    array: np.ndarray,
+    feature_axis: int = -1,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    reduce_axes = tuple(axis for axis in range(array.ndim) if axis != feature_axis)
+    mean = array.mean(axis=reduce_axes, keepdims=True, dtype=np.float64)
+    std = array.std(axis=reduce_axes, keepdims=True, dtype=np.float64)
+    std = np.where(std < 1e-6, 1.0, std)
+
+    standardized = ((array - mean) / std).astype(np.float32)
+    return standardized, mean.astype(np.float32), std.astype(np.float32)
+
+
+def split_and_standardize_dynamic_data(
+    sliding_window: np.ndarray,
+    x: np.ndarray,
+    y: np.ndarray,
+    split_ratio: tuple[float, float, float],
+    seed: int,
+) -> dict[str, dict[str, np.ndarray]]:
+    split_indices = build_split_indices(
+        num_samples=x.shape[0],
+        split_ratio=split_ratio,
+        seed=seed,
+    )
+    split_data: dict[str, dict[str, np.ndarray]] = {}
+
+    for split_name, indices in split_indices.items():
+        split_window = sliding_window[indices]
+        split_x = x[indices]
+        split_y = y[indices]
+
+        standardized_window, window_mean, window_std = zscore_standardize(split_window)
+        standardized_x, x_mean, x_std = zscore_standardize(split_x)
+        standardized_y, y_mean, y_std = zscore_standardize(split_y)
+
+        split_data[split_name] = {
+            "indices": indices.astype(np.int64),
+            "sliding_window": standardized_window,
+            "X": standardized_x,
+            "y": standardized_y,
+            "sliding_window_mean": window_mean.squeeze().astype(np.float32),
+            "sliding_window_std": window_std.squeeze().astype(np.float32),
+            "X_mean": x_mean.squeeze().astype(np.float32),
+            "X_std": x_std.squeeze().astype(np.float32),
+            "y_mean": y_mean.squeeze().astype(np.float32),
+            "y_std": y_std.squeeze().astype(np.float32),
+        }
+
+    return split_data
+
+
 def build_graph_tensors(
     edge_index: torch.Tensor,
     static_grid: np.ndarray,
@@ -260,16 +351,16 @@ def build_graph_tensors(
 
 
 def save_dynamic_data(
-    dynamic_grid: np.ndarray,
-    sliding_window: np.ndarray,
-    x: np.ndarray,
-    y: np.ndarray,
+    split_dynamic_data: dict[str, dict[str, np.ndarray]],
 ) -> None:
     with h5py.File(DYNAMIC_PATH, "w") as file:
-        file.create_dataset("dynamic", data=dynamic_grid, dtype="float32")
-        file.create_dataset("sliding_window", data=sliding_window, dtype="float32")
-        file.create_dataset("X", data=x, dtype="float32")
-        file.create_dataset("y", data=y, dtype="float32")
+        file.attrs["seed"] = 42
+        file.attrs["split_ratio"] = SPLIT_RATIO
+        for split_name, split_payload in split_dynamic_data.items():
+            group = file.create_group(split_name)
+            for key, value in split_payload.items():
+                dtype = "int64" if key == "indices" else "float32"
+                group.create_dataset(key, data=value, dtype=dtype)
 
 
 def save_static_data(static_grid: np.ndarray) -> None:
@@ -327,12 +418,19 @@ def main() -> None:
         past_steps=GRAPH_CONFIG["P"],
         future_steps=GRAPH_CONFIG["Q"],
     )
+    split_dynamic_data = split_and_standardize_dynamic_data(
+        sliding_window=sliding_window,
+        x=x,
+        y=y,
+        split_ratio=SPLIT_RATIO,
+        seed=42,
+    )
     adj_mtx, weighted_graph = build_graph_tensors(
         edge_index=edge_index,
         static_grid=static_grid,
     )
 
-    save_dynamic_data(dynamic_grid, sliding_window, x, y)
+    save_dynamic_data(split_dynamic_data)
     save_static_data(static_grid)
     save_graph_data(edge_index, adj_mtx, weighted_graph)
 

@@ -3,7 +3,7 @@ from pathlib import Path
 import h5py
 import torch
 import yaml
-from torch.utils.data import DataLoader, Dataset, random_split
+from torch.utils.data import DataLoader, Dataset
 
 
 torch.manual_seed(42)
@@ -35,25 +35,32 @@ graph = _load_h5_tensor(GRAPH_PATH, "edge_index")
 
 
 class HCM_Dataset(Dataset):
-    def __init__(self, h5_path: str):
+    def __init__(self, h5_path: str, split: str):
         self.h5_path = h5_path
+        self.split = split
         with h5py.File(self.h5_path, "r") as f:
-            self.length = f["X"].shape[0]
+            if self.split not in f:
+                available_splits = ", ".join(sorted(f.keys()))
+                raise KeyError(
+                    f"'{self.split}' not found in {self.h5_path}. "
+                    f"Available splits: {available_splits}"
+                )
+            self.length = f[self.split]["X"].shape[0]
 
     def __len__(self) -> int:
         return self.length
 
     def __getitem__(self, idx: int):
         with h5py.File(self.h5_path, "r") as f:
-            X = torch.from_numpy(f["X"][idx]).float()
-            y = torch.from_numpy(f["y"][idx]).float()
+            split_group = f[self.split]
+            X = torch.from_numpy(split_group["X"][idx]).float()
+            y = torch.from_numpy(split_group["y"][idx]).float()
         return X, y
 
 
-dataset = HCM_Dataset(h5_path=DYNAMIC_PATH)
-train_dataset, val_dataset, test_dataset = random_split(
-    dataset, [TRAIN_RATIO, VAL_RATIO, TEST_RATIO]
-)
+train_dataset = HCM_Dataset(h5_path=DYNAMIC_PATH, split="train")
+val_dataset = HCM_Dataset(h5_path=DYNAMIC_PATH, split="val")
+test_dataset = HCM_Dataset(h5_path=DYNAMIC_PATH, split="test")
 
 
 def get_dataloader(batch_size: int = 32):
@@ -65,9 +72,9 @@ def get_dataloader(batch_size: int = 32):
 
 if __name__ == "__main__":
     print("X[0] shape:")
-    print(dataset[0][0].shape)
+    print(train_dataset[0][0].shape)
     print("\ny[0] shape:")
-    print(dataset[0][1].shape)
+    print(train_dataset[0][1].shape)
     print("\nStatic shape:")
     print(static.shape)
     print("\nGraph shape:")
