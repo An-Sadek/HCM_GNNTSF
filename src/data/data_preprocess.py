@@ -53,6 +53,9 @@ class GenericDataset():
         # Chạy start
         self.generic_start()
 
+        # Kết thúc quá trình chạy và save
+        self.end()
+
     def generic_start(self):
         for action, params in self.config_dict.items():
             if params is None:
@@ -168,8 +171,8 @@ if __name__ == "__main__":
         "segment_status": f"{DATA_PATH}/segment_status.csv",
         "train": f"{DATA_PATH}/train.csv"
     }
-    GenericDataset(file_paths["nodes"]).end()
-    GenericDataset(file_paths["segment_status"]).end()
+    GenericDataset(file_paths["nodes"])
+    GenericDataset(file_paths["segment_status"])
     StreetsDataset(file_paths["streets"])
     segments = SegmentsDataset(file_paths["segments"])
     TrainDataset(file_paths["train"], segments)
