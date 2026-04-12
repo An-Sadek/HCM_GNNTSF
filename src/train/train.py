@@ -1,5 +1,5 @@
 # Khâu chuẩn bị
-# Thư viện
+# |-- Thư viện
 import argparse
 import os.path
 from pathlib import Path
@@ -23,7 +23,7 @@ else:
     from src.model.stgnn import STGNN
 
 
-# Load config và định nghĩa hằng
+# |-- Load config và định nghĩa hằng
 CONFIG_ROOT = Path("configs")
 CONFIG_PATH = CONFIG_ROOT / "data.yaml"
 CHECKPOINT_DIR = Path(__file__).resolve().parents[2] / "checkpoints"
@@ -32,7 +32,7 @@ with CONFIG_PATH.open("r", encoding="utf-8") as file:
 
 MODEL_CONFIG_ROOT = Path(CONFIG_ROOT / "models")
 
-# Tạo thư mục result
+# |-- Tạo thư mục result
 RESULT_DIR = config["path"]["result"]
 if not os.path.exists(RESULT_DIR):
     print("Không tìm thấy thư mục kết quả, tạo mới")
@@ -43,7 +43,6 @@ else:
 # Tạo metadata để tránh bị lú
 def create_metadata(result_path):
     pass
-# === END
 
 
 def masked_mae(prediction: torch.Tensor, target: torch.Tensor, null_val: float = -1.0) -> torch.Tensor:
@@ -69,6 +68,8 @@ def regression_metrics(prediction: torch.Tensor, target: torch.Tensor, null_val:
     return {"mae": mae, "rmse": rmse, "mape": mape}
 
 
+# Tao lop training
+# |-- Training tong quat
 class Training:
     def __init__(self, model_architecture: str, model_name: str):
         # Load config kiến trúc
@@ -160,6 +161,18 @@ class Training:
         metrics = regression_metrics(torch.cat(preds, dim=0), torch.cat(targets, dim=0), self.target_null_value)
         return avg_loss, metrics
 
+# |-- Training cua ST-GNN
+class STGNNTraining(Training):
+    def __init__(self, model_name: str):
+        super().__init__("ST-GNN", model_name)
+
+        self.K = self.model_config["K"]
+        self.d = self.model_config["d"]
+        self.L = self.model_config["L"]
+        self.input_feature_dim = get_dynamic_feature_dim()
+
+        self.model = STGNN(self.input_feature_dim, self.K * self.d, self.L, self.d).to(self.device)
+
     def fit(self, train_loader, val_loader):
         optimizer = self.get_optimizer()
         best_val_loss = float("inf")
@@ -198,18 +211,6 @@ class Training:
             f"rmse={test_metrics['rmse']:.4f} mape={test_metrics['mape']:.4f}"
         )
         return test_loss, test_metrics
-
-
-class STGNNTraining(Training):
-    def __init__(self, model_name: str):
-        super().__init__("ST-GNN", model_name)
-
-        self.K = self.model_config["K"]
-        self.d = self.model_config["d"]
-        self.L = self.model_config["L"]
-        self.input_feature_dim = get_dynamic_feature_dim()
-
-        self.model = STGNN(self.input_feature_dim, self.K * self.d, self.L, self.d).to(self.device)
 
 
 def parse_args():
